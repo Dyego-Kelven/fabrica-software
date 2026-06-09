@@ -122,24 +122,33 @@ export default function App() {
   function removeRecord(target: EntityKey, record: Record<string, unknown>) {
     const key = primaryKeys[target];
     const id = String(record[key]);
-    const blockedBy = deleteBlockReason(target, id, data);
+    const blockedBy = target === 'funcionarios' ? null : deleteBlockReason(target, id, data);
     if (blockedBy) {
       Alert.alert('Exclusao bloqueada', blockedBy);
       return;
     }
-    Alert.alert('Excluir registro', `Deseja excluir ${id}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: () => setData((current) => ({
+    setData((current) => {
+      if (target === 'funcionarios') {
+        return {
           ...current,
-          [target]: (current[target] as unknown as Record<string, unknown>[]).filter(
-            (item) => String(item[key]) !== id,
-          ),
-        }) as AppData),
-      },
-    ]);
+          funcionarios: current.funcionarios
+            .filter((item) => item.matricula !== id)
+            .map((item) => item.gerenteMatricula === id
+              ? { ...item, gerenteMatricula: undefined }
+              : item),
+          dependentes: current.dependentes.filter((item) => item.funcionarioMatricula !== id),
+          progressoes: current.progressoes.filter((item) => item.funcionarioMatricula !== id),
+          participacoes: current.participacoes.filter((item) => item.funcionarioMatricula !== id),
+          testes: current.testes.filter((item) => item.funcionarioMatricula !== id),
+        };
+      }
+      return {
+        ...current,
+        [target]: (current[target] as unknown as Record<string, unknown>[]).filter(
+          (item) => String(item[key]) !== id,
+        ),
+      } as AppData;
+    });
   }
 
   if (!loaded) {
